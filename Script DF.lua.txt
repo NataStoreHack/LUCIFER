@@ -1,0 +1,1691 @@
+-- RIZKOGTI | DF V1.3.2
+-- For Multibot Max 25 Bot / Run, You Must Use Enable Multi Select -> Select Bots/Select All
+-- Join my discord https://discord.gg/CFW4c892d4
+
+worldSeparator = "|"
+worldList = {
+    "WORLD1|DOORID",
+    "WORLD2|DOORID",
+    "WORLD3|DOORID",
+    "WORLD4|DOORID",
+    "WORLD5|DOORID",
+}
+
+useTxtFile = false
+filePath = "RIZKO_FIND.txt"
+autoDeleteFinishedWorld = true
+
+singleBotMode = false -- 1 Bot / World
+
+putPlatform = true
+platformID = 102
+platStorages = {
+    "STORAGE1|DOORID",
+    "STORAGE2|DOORID",
+    "STORAGE3|DOORID",
+}
+
+saveSeed = true
+trashBlocks = true -- Trash Block like Dirt, Cave, Rock, and Lava
+-- World For Dropping Seeds Like Dirt Seed, Cave, Rock, and Lava
+seedStorages = {
+    "STORAGE1|DOORID",
+    "STORAGE2|DOORID",
+    "STORAGE3|DOORID",
+}
+
+ignoreCave = false
+ignoreRock = false
+ignoreLava = false
+
+autoTakePickaxe = false
+pickaxeStorages = {
+    "STORAGE1|DOORID",
+    "STORAGE2|DOORID",
+    "STORAGE3|DOORID",
+}
+
+dynamicDelay = true
+delayBreak = 200
+delayPlace = 280
+
+delayOnExecute = 2000
+delayWarp = 8000
+delayReconnect = 30 -- Seconds
+hardWarpRestTime = 2 -- Minutes
+
+moveRange = 6
+moveInterval = 0.235
+showAnimation = false
+
+autoTrash = true
+trashList = {2, 14, 10, 4}
+
+saveToTxt = true -- Save Finished World to .txt File, Bot Will Auto Create File
+fileName = "RIZKOGTI_FINISHED_DF.txt"
+
+-- Malady
+autoConsume = false
+consumeID = 8542
+consumeStorages = {
+    "STORAGE1|DOORID",
+    "STORAGE2|DOORID",
+    "STORAGE3|DOORID",
+}
+
+autoGetMalady = false -- Grumbleteeth malady
+-- Bot Will Randomly Warp to These Worlds for Getting Malady 
+maladyWorlds = {
+    "WORLD1",
+    "WORLD2",
+    "WORLD3",
+}
+
+mainWebhookURL = "https://discordapp.com/api/webhooks/1410941027833086014/dmssoP5a_SbafDoYllcsiBYkwMmwb1qoUvXtEiiLfy90ly8wCpIEBtLtIImhZkZFjqaT"
+notifWebhookURL = "https://discordapp.com/api/webhooks/1393823156770177075/trqlpqtqJ0vQlyrnWz5J9SrmYj9zkeNnVSyhhKO23FYgyInuRpX-FK91ItcbhKNLxeXb"
+
+bot = getBot()
+sleep(delayOnExecute * (bot.index-1))
+bot.move_range = moveRange
+bot:setInterval(Action.move, moveInterval)
+bot:setInterval(Action.collect, 0.100)
+bot.auto_collect = false
+bot.auto_reconnect = true
+bot.reconnect_interval = delayReconnect
+bot.collect_range = 3
+bot.legit_mode = showAnimation
+
+startTime = os.time()
+mode2Tile = {1,2}
+mode3Tile = {0,1,2}
+worldNuked = false
+warpAttempt = 0
+selectedBots = {}
+pickaxeID = 98
+shouldPutPlat = false
+mainMsgID = ""
+worldIndex = 0
+
+spamText = {
+    "Hey, have you checked out the latest update?",
+    "Don't forget to complete your daily quests!",
+    "Join our group for some epic raids!",
+    "Can you help me with this level? It's so hard!",
+    "Anyone up for a quick game?",
+    "Check out the new items in the shop!",
+    "Remember to log in every day for free rewards!",
+    "Who's excited for the upcoming event?",
+    "Let's team up and conquer the next challenge!",
+    "Send me a trade request if you have rare items!",
+    "Level up faster by completing challenges every day!",
+    "Invite your friends to join our guild for more fun!",
+    "Looking for party members for the dungeon run!",
+    "Upgrade your equipment to dominate in battles!",
+    "Double XP weekend is coming, get ready!",
+    "New skins available now! Customize your character!",
+    "Don't miss out on the limited-time offers in the store!",
+    "Share your strategies with us in the chat!",
+    "Let's take down the boss together!",
+    "Anyone found secret locations in the new map?"
+}
+totalSeconds = 0
+
+function getSelectedBot()
+    if singleBotMode then
+        table.insert(selectedBots, getBot())
+    else
+        for _, botz in pairs(getBots()) do
+            if botz.selected then
+                table.insert(selectedBots, botz)
+            end
+        end
+    end
+end
+
+function getIndexBot()
+    if singleBotMode then
+        indexBot = 1
+        indexLast = 1
+    else
+        for i, botz in pairs(selectedBots) do
+            if botz.name:upper() == bot.name:upper() then
+                indexBot = i
+            end
+            indexLast = i
+        end
+    end
+end
+
+function printSelectedBot()
+    nameSelected = ""
+    for _, botz in pairs(selectedBots) do
+        if #botz.name > 3 then
+            nameSelected = nameSelected .. string.sub(botz.name, 1, 4):upper() .. string.rep("*", 3) .. ", "
+        else
+            nameSelected = nameSelected .. botz.name .. ", "
+        end
+    end
+    print("[R] Selected Bots["..indexLast.."]: "..nameSelected)
+end
+
+function printLog(msg)
+    local timestamp = os.date("[%H:%M:%S]")  -- Format HH:MM:SS
+    return print("[R]"..timestamp.." "..bot.name:upper().." > "..msg)
+end
+
+function printDebug(msg)
+    return print("[DEBUG] "..bot.name:upper().." > "..msg)
+end
+
+function printCrit(msg)
+    return print("[CRITICAL] "..bot.name:upper().." > "..msg)
+end
+
+function divWorld()
+    if singleBotMode then
+        divSeed = math.ceil(#getBots() / #seedStorages)
+        seedStoragez = seedStorages[math.ceil(bot.index / divSeed)]
+        seedStorage, seedStorageDoorID = string.match(seedStoragez, "([^|]+)"..worldSeparator.."([^|]+)")
+        printLog("Seed Storage: "..seedStorage:upper())
+    else
+        divSeed = math.ceil(indexLast / #seedStorages)
+        seedStoragez = seedStorages[math.ceil(indexBot / divSeed)]
+        seedStorage, seedStorageDoorID = string.match(seedStoragez, "([^|]+)"..worldSeparator.."([^|]+)")
+        printLog("Seed Storage: "..seedStorage:upper())
+    end
+    
+    if putPlatform then
+        divPlat = math.ceil(indexLast / #platStorages)
+        platStoragez = platStorages[math.ceil(indexBot / divPlat)]
+        platStorage, platStorageDoorID = string.match(platStoragez, "([^|]+)"..worldSeparator.."([^|]+)")
+        printLog("Plat Storage: "..platStorage:upper())
+    end
+    
+    if autoTakePickaxe then
+        pickDiv = math.ceil(indexLast / #pickaxeStorages)
+        pickaxeStoragez = pickaxeStorages[math.ceil(indexBot / pickDiv)]
+        pickaxeStorage, pickaxeStorageDoorID = string.match(pickaxeStoragez, "([^|]+)"..worldSeparator.."([^|]+)")
+        printLog("Pickaxe Storage: "..pickaxeStorage:upper())
+    end
+    
+    if autoConsume then
+        conDiv = math.ceil(indexLast / #consumeStorages)
+        consumeStrg = consumeStorages[math.ceil(indexBot / conDiv)]
+        consumeStorage, consumeStorageDoorID = string.match(consumeStrg, "([^|]+)"..worldSeparator.."([^|]+)")
+        printLog("Consume Storage: "..consumeStorage:upper())
+    end
+    
+end
+
+function readFarmList()
+    worlds = {}
+    if useTxtFile then
+        local file = io.open(filePath, "r")
+        if file then
+            for line in file:lines() do
+                table.insert(worlds, line)
+            end
+            file:close()
+        else
+            printCrit("Failed to Open File In Path: " .. filePath)
+            printCrit("Stopping Script...")
+            bot:stopScript()
+        end
+    else
+        for _, wlist in pairs(worldList) do
+            table.insert(worlds, wlist)
+        end
+    end
+end
+
+function spreadWorld()
+    botWorlds = {}
+    if singleBotMode then
+        divRes = #worlds / #getBots()
+        if divRes ~= math.floor(divRes) then
+            worldPerBot = math.ceil(#worlds / #getBots())
+        else
+            worldPerBot = math.floor(#worlds / #getBots())
+        end
+    
+        startIndex = (bot.index - 1) * worldPerBot + 1
+        endIndex = startIndex + worldPerBot - 1
+        
+        for i = startIndex, endIndex do
+            if worlds[i] then
+                table.insert(botWorlds, worlds[i])
+            end
+        end
+    else
+        for _, wrld in pairs(worlds) do
+            table.insert(botWorlds, wrld)
+        end
+    end
+    sleep(100)
+    for i, bw in pairs(botWorlds) do
+        printLog("["..i.."] "..bw)
+    end
+end
+
+function findItem(id)
+    return bot:getInventory():findItem(id)
+end
+
+function gscanFloat(id)
+    return bot:getWorld().growscan:getObjects()[id] or 0
+end
+
+function gscanBlock(id)
+    return bot:getWorld().growscan:getTiles()[id] or 0
+end
+
+function checkNuked(variant, netid)
+    if variant:get(0):getString() == "OnConsoleMessage" then
+        if variant:get(1):getString():lower():find("inaccessible") or variant:get(1):getString():lower():find("players lower than level") then
+            worldNuked = true
+        end
+    end
+end
+
+function checkBanned()
+    if bot.status ~= BotStatus.online then
+        printCrit("Disconnected, Trying to Reconnect...")
+        callMain("Disconnected, Trying to Reconnect...")
+        callNotif("Disconnected, Trying to Reconnect...", true)
+        while bot.status ~= BotStatus.online or bot:getPing() == 0 do
+            sleep(1000)
+            if bot.status == BotStatus.account_banned then
+                printCrit("Got Banned!")
+                callMain("Got Banned!")
+                callNotif("Got Banned!", true)
+                while bot.status == BotStatus.account_banned do
+                    sleep(8000)
+                end
+                while bot:isInTutorial() do
+                    sleep(5000)
+                end
+            end
+        end
+        printLog("Back Online!")
+        callNotif("Back Online", false)
+    end
+end
+
+function warps(world, doorid)
+    worldNuked = false
+    warpAttempt = 0
+    addEvent(Event.variantlist, checkNuked)
+    while not bot:isInWorld(world:upper()) and not worldNuked do
+        printLog("Warping to World "..world:upper())
+        callMain("Warping to World "..world:upper())
+        if bot.status == BotStatus.online and bot:getPing() == 0 then
+            bot:disconnect()
+            sleep(1000)
+        end
+        checkBanned()
+        if doorid ~= "" then
+            bot:warp(world, doorid)
+            listenEvents(math.floor(delayWarp/1000))
+        else
+            bot:warp(world)
+            listenEvents(math.floor(delayWarp/1000))
+        end
+        
+        if warpAttempt >= 5 then
+            warpAttempt = 0
+            printCrit("Maximum Warp Attempt (Hard Warp), Resting...")
+            callMain("Maximum Warp Attempt (Hard Warp), Resting...")
+            callNotif("Maximum Warp Attempt (Hard Warp), Resting...", true)
+            bot.auto_reconnect = false
+            sleep(500)
+            bot:disconnect()
+            sleep(hardWarpRestTime * 60000)
+            bot.auto_reconnect = true
+            while bot.status ~= BotStatus.online do
+                sleep(2000)
+            end
+            printLog("Back from Hard Warp Rest")
+            callNotif("Back from Hard Warp Rest", false)
+        else
+            warpAttempt = warpAttempt + 1
+        end
+    end
+    
+    if worldNuked then
+        printCrit("World "..world:upper().." got Nuked!")
+        callNotif("World "..world:upper().." got Nuked!", true)
+    end
+
+    if doorid ~= "" and getTile(bot.x, bot.y).fg == 6 and not worldNuked then
+        checkBanned()
+        for i = 1, 5 do
+            if getTile(bot.x,bot.y).fg == 6 then
+                checkBanned()
+                bot:warp(world, doorid)
+                sleep(4000)
+            end
+        end
+        
+        if getTile(bot.x, bot.y).fg == 6 then
+            printCrit("Cant Join Door ID at " .. world:upper())
+            callNotif("Cant Join Door ID at " .. world:upper(), true)
+            worldNuked = true
+        end
+    end
+
+    sleep(100)
+    removeEvent(Event.variantlist)
+end
+
+function reconnect(world, doorid, x, y)
+    if bot.status ~= BotStatus.online or bot:getPing() == 0 then
+        checkBanned()
+
+        if bot:getWorld().name ~= world:upper() then
+            warps(world, doorid)
+        end
+
+        if doorid ~= "" and getTile(bot.x, bot.y).fg == 6 then
+            checkBanned()
+            for i = 1, 5 do
+                if getTile(bot.x,bot.y).fg == 6 then
+                    checkBanned()
+                    bot:warp(world, doorid)
+                    sleep(4000)
+                end
+            end
+        
+            if getTile(bot.x,bot.y).fg == 6 then
+                printCrit("Cant Join Door ID at World "..world:upper())
+                callNotif("Cant Join Door ID at World "..world:upper(), true)
+                sleep(1000)
+            end
+        end
+    end
+
+    if x and y and not bot:isInTile(x, y) and not worldNuked then
+        checkBanned()
+        if bot:getWorld().name ~= world:upper() then
+            warps(world, doorid)
+        end
+        if doorid ~= "" and getTile(bot.x, bot.y).fg == 6 then
+            for i = 1, 5 do
+                if getTile(bot.x,bot.y).fg == 6 then
+                    checkBanned()
+                    bot:warp(world, doorid)
+                    sleep(4000)
+                end
+            end
+        
+            if getTile(bot.x,bot.y).fg == 6 then
+                printCrit("Cant Join Door ID at World "..world:upper())
+                callNotif("Cant Join Door ID at World "..world:upper(), true)
+                worldNuked = true
+            end
+        end
+        if not worldNuked then
+            printLog("Trying to Findpath to "..world:upper().."("..x..","..y..")")
+            bot:findPath(x,y)
+            sleep(200)
+        end
+        
+    end
+end
+
+function dropItem(id, world, doorid)
+    bot.auto_collect = false
+
+    warps(world, doorid)
+    if not worldNuked and bot:isInWorld(world:upper()) then
+        printLog("Dropping "..findItem(id).." "..getInfo(id).name.." in World "..world:upper())
+        callMain("Dropping "..findItem(id).." "..getInfo(id).name)
+        
+        for i = 1, 10 do
+            if findItem(id) > 0 then
+                bot:findOutput()
+                sleep(1000)
+                bot:drop(id, findItem(id))
+                sleep(450)
+            end
+        end
+
+        while findItem(id) > 0 do
+            printCrit("Cannot Drop "..getInfo(id).name.." in World "..world:upper()..", Please Check The World...")
+            callNotif("Cannot Drop "..getInfo(id).name.." in World "..world:upper()..", Please Check The World...", true)
+            sleep(3000)
+        end
+    end
+end
+
+function takeItem(id, amount, world, doorid)
+    bot.auto_collect = false
+    bot.object_collect_delay = 200
+    
+    warps(world, doorid)
+    if not worldNuked and bot:isInWorld(world:upper()) then
+        printLog("Taking "..amount.." "..getInfo(id).name .. " in World "..world:upper())
+        callMain("Taking "..amount.." "..getInfo(id).name)
+        for _, obj in pairs(getObjects()) do
+            if obj.id == id then
+                if #bot:getPath(math.floor(obj.x / 32),math.floor(obj.y / 32)) > 0 then
+                    bot:findPath(math.floor(obj.x / 32),math.floor(obj.y / 32))
+                    sleep(100)
+                end
+                bot:collectObject(obj.oid, 4)
+                sleep(500)
+                reconnect(world, doorid)
+            end
+            if findItem(id) >= amount then
+                break
+            end
+        end
+
+        if findItem(id) > amount then
+            bot:moveRight()
+            sleep(200)
+            bot:setDirection(true)
+            sleep(200)
+            bot:drop(id, findItem(id) - amount)
+            sleep(500)
+            reconnect(world, doorid)
+            for i = 1, 10 do
+                if findItem(id) > amount then
+                    bot:moveRight()
+                    sleep(200)
+                    bot:setDirection(true)
+                    sleep(200)
+                    bot:drop(id, findItem(id) - amount)
+                    sleep(500)
+                    reconnect(world, doorid)
+                end
+            end
+        end
+        
+        if id == pickaxeID then
+            while findItem(id) > 0 and not bot:getInventory():getItem(id).isActive do
+                bot:wear(id)
+                sleep(300)
+                reconnect(world, doorid)
+            end
+        end
+        
+        if findItem(id) == 0 then
+            printCrit("Trying to Take ".. amount .. " " .. getInfo(id).name)
+            callNotif("Trying to Take ".. amount .. " " .. getInfo(id).name, true)
+            sleep(3000)
+        end
+    end
+end
+
+function takePickaxe()
+    printLog("Taking Pickaxe...")
+    callMain("Taking Pickaxe...")
+    while findItem(pickaxeID) ~= 1 do
+        takeItem(pickaxeID, 1, pickaxeStorage, pickaxeStorageDoorID)
+        sleep(500)
+    end
+end
+
+function trashJunk(world, doorid)
+    for _, trash in pairs(trashList) do
+        if findItem(trash) > 150 then
+            printLog("Throwing Away "..getInfo(trash).name)
+            bot:trash(trash, findItem(trash))
+            sleep(1000)
+            reconnect(world, doorid)
+        end
+    end
+end
+
+function clearSide(world, doorid)
+    local sideXOptions = {
+        {0},               -- Untuk usePlatform = true dan indexBot % 2 == 0
+        {0, 1},            -- Untuk usePlatform = false dan indexBot % 2 == 0
+        {99},              -- Untuk usePlatform = true dan indexBot % 2 ~= 0
+        {98, 99},          -- Untuk usePlatform = false dan indexBot % 2 ~= 0
+        {0, 99},           -- Untuk usePlatform = true dan #selectedBots <= 1
+        {0, 1, 98, 99}     -- Untuk usePlatform = false dan #selectedBots <= 1
+    }
+    local sideXIndex
+    if #selectedBots > 1 then
+        if indexBot % 2 == 0 then
+            sideXIndex = putPlatform and 2 or 1
+        else
+            sideXIndex = putPlatform and 4 or 3
+        end
+    else
+        sideXIndex = putPlatform and 6 or 5
+    end
+
+    sideX = sideXOptions[sideXIndex]
+
+    local function handleTile(x, y, offset, world, doorid, targetX, targetY)
+        if getTile(x, y + offset).fg ~= 8 and getTile(x, y + offset).fg ~= platformID then
+            if getTile(x, y + offset).fg ~= 0 or (not ignoreCave and getTile(x, y + offset).bg ~= 0) then
+                while getTile(x, y + offset).fg ~= 0 or (not ignoreCave and getTile(x, y + offset).bg ~= 0) do
+                    bot:hit(x, y + offset)
+                    if dynamicDelay then
+                        sleep(math.max(0, (bot:getPing() - botPing) * 10 ) + delayBreak )
+                    else
+                        sleep(delayBreak)
+                    end
+                    reconnect(world, doorid, targetX, targetY)
+                end
+            end
+        end
+    end
+
+    local function moveBotTo(bot, ex, ye, ignoreCave)
+        if #bot:getPath(ex, ye - 1) > 0 and not bot:isInTile(ex, ye-1) then
+            if #bot:getPath(ex, ye - 1) > 5 then
+                bot:findPath(ex, ye - 1)
+            else
+                bot:moveTile(ex, ye - 1)
+            end
+            sleep(100)
+        end
+    end
+    
+    warps(world, doorid)
+    if not worldNuked and bot:isInWorld(world:upper()) then
+        callMain("Clearing Side")
+        printLog("Clearing Side")
+        bot.auto_collect = true
+        bot:setInterval(Action.collect, 0.100)
+
+        for _, ex in pairs(sideX) do
+            reconnect(world, doorid)
+            for ye = 24, 53 do
+                reconnect(world, doorid)
+                if getTile(ex, ye).fg ~= platformID and getTile(ex, ye).fg ~= 8 then
+                    if (ignoreCave and getTile(ex, ye).fg ~= 0) or (not ignoreCave and (getTile(ex, ye).fg ~= 0 or getTile(ex, ye).bg ~= 0)) then
+                        moveBotTo(bot, ex, ye, ignoreCave)
+                        if bot:isInTile(ex, ye - 1) then
+                            for _, i in pairs(mode2Tile) do
+                                botPing = bot:getPing()
+                                handleTile(bot.x, bot.y, i, world, doorid, ex, ye - 1)
+                            end
+                        end
+                    end
+                end
+            end
+            if autoTrash then
+                trashJunk(world, doorid)
+            end
+        end
+    end
+end
+
+function putPlat(world, doorid)
+    local sideXOptions = {
+        {1},
+        {98},
+        {1, 98}
+    }
+
+    if indexBot == 1 or indexBot == 2 then
+        shouldPutPlat = true
+    end
+
+    if shouldPutPlat then
+        if #selectedBots > 1 then
+            platToTake = 26
+            if indexBot % 2 == 0 then
+                sideXIndex = 1
+            else
+                sideXIndex = 2
+            end
+        else
+            platToTake = 52
+            sideXIndex = 3
+        end
+
+        platX = sideXOptions[sideXIndex]
+        sleep(200)
+        platExist = scanPlat(world, doorid)
+        sleep(200)
+        platToTake = platToTake - platExist
+
+        while findItem(platformID) ~= platToTake do
+            takeItem(platformID, platToTake, platStorage, platStorageDoorID)
+            sleep(500)
+        end
+    
+        warps(world, doorid)
+        if not worldNuked and bot:isInWorld(world:upper()) then
+            for _, ex in pairs(platX) do
+                reconnect(world, doorid)
+                printLog("Placing Platform in X "..ex)
+                callMain("Placing Platform in X "..ex)
+                for ye = 52, 2, -2 do
+                    reconnect(world, doorid)
+                    if getTile(ex, ye).fg == 0 and hasAccess(ex, ye) > 0 and findItem(platformID) > 0 then
+                        if #bot:getPath(ex, ye - 1) > 0 and not bot:isInTile(ex, ye-1) then
+                            if #bot:getPath(ex, ye - 1) > 5 then
+                                bot:findPath(ex, ye - 1)
+                                sleep(100)
+                            else
+                                bot:moveTile(ex, ye - 1)
+                                sleep(100)
+                            end
+                        end
+
+                        if bot:isInTile(ex, ye-1) then
+                            botPing = bot:getPing()
+                            while getTile(bot.x, bot.y+1).fg ~= 0 and getTile(bot.x, bot.y+1).fg ~= platformID and hasAccess(bot.x, bot.y+1) > 0 do
+                                bot:hit(bot.x, bot.y+1)
+                                if dynamicDelay then
+                                    sleep(math.max(0, (bot:getPing() - botPing) * 10 ) + delayBreak )
+                                else
+                                    sleep(delayBreak)
+                                end
+                                reconnect(world, doorid, ex, ye-1)
+                            end
+                            
+                            botPing = bot:getPing()
+                            while getTile(bot.x, bot.y+1).fg == 0 and hasAccess(bot.x, bot.y+1) > 0 and findItem(platformID) > 0 do
+                                bot:place(bot.x, bot.y+1, platformID)
+                                if dynamicDelay then
+                                    sleep(math.max(0, (bot:getPing() - botPing) * 10 ) + delayPlace )
+                                else
+                                    sleep(delayPlace)
+                                end
+                                reconnect(world, doorid, ex, ye-1)
+                            end
+                        end
+                        
+                    end
+                end
+            end
+        end
+    end
+    
+end
+
+function makeRow(world, doorid)
+    if not saveSeed then
+        bot.collect_range = 2
+    end
+    
+    local hasGoThere = false
+    local currentY = 0
+    local seedsID = {3, 15, 11, 5}
+    local blocksID = {2, 4, 10, 14}
+    tileY = {}
+    tileYList = {}
+    droppingSeed = false
+
+    for i = 25, 53, 2 do
+        table.insert(tileYList, i)
+    end
+
+    for i = indexBot, #tileYList, #selectedBots do
+        table.insert(tileY, tileYList[i])
+    end
+
+    local function moveBotAndHandleTiles(ex, ye, world, doorid)
+
+        if #bot:getPath(ex - 1, ye) > 0 and not bot:isInTile(ex - 1, ye) then
+            if #bot:getPath(ex - 1, ye) > 5 then
+                bot:findPath(ex - 1, ye)
+                sleep(100)
+            else
+                bot:moveTile(ex - 1, ye)
+                sleep(100)
+            end
+        end
+
+        if bot:isInTile(ex - 1, ye) then
+            if not hasGoThere then
+                hasGoThere = true
+            end
+            if currentY ~= ye then
+                currentY = ye
+                printLog("Currently In Row Y "..ye)
+                callMain("Currently In Row Y "..ye)
+            end
+            for _, i in pairs(mode2Tile) do
+                botPing = bot:getPing()
+                if bot:getWorld():isValidPosition((bot.x + i) * 32, bot.y * 32) and getTile(bot.x + i, bot.y).fg ~= 2302 then
+                    while getTile(bot.x + i, bot.y).fg ~= 0 or 
+                        (not ignoreCave and getTile(bot.x + i, bot.y).bg ~= 0) and 
+                        hasAccess(bot.x + i, bot.y) > 0 do
+                        bot:hit(bot.x + i, bot.y)
+                        
+                        if dynamicDelay then
+                            sleep(math.max(0, (bot:getPing() - botPing) * 10 ) + delayBreak )
+                        else
+                            sleep(delayBreak)
+                        end
+
+                        reconnect(world, doorid, ex - 1, ye)
+                    end
+                end
+            end
+
+            if not ignoreRock then
+                for _, i in pairs(mode2Tile) do
+                    botPing = bot:getPing()
+                    if getTile(bot.x+i, bot.y-1).fg == 10 then
+                        while getTile(bot.x+i, bot.y-1).fg == 10 and hasAccess(bot.x+i, bot.y-1) > 0 do
+                            bot:hit(bot.x+i, bot.y-1)
+                            if dynamicDelay then
+                                sleep(math.max(0, (bot:getPing() - botPing) * 10 ) + delayBreak )
+                            else
+                                sleep(delayBreak)
+                            end
+                            reconnect(world, doorid, ex - 1, ye)
+                        end
+                    end
+                end
+            end
+
+            if not ignoreLava then
+                for _, i in pairs(mode2Tile) do
+                    botPing = bot:getPing()
+                    if getTile(bot.x+i, bot.y-1).fg == 4 then
+                        while getTile(bot.x+i, bot.y-1).fg == 4 and hasAccess(bot.x+i, bot.y-1) > 0 do
+                            bot:hit(bot.x+i, bot.y-1)
+                            if dynamicDelay then
+                                sleep(math.max(0, (bot:getPing() - botPing) * 10 ) + delayBreak )
+                            else
+                                sleep(delayBreak)
+                            end
+                            reconnect(world, doorid, ex - 1, ye)
+                        end
+                    end
+                end
+            end
+        end
+        sleep(100)
+        
+    end
+
+    warps(world, doorid)
+    if not worldNuked and bot:isInWorld(world:upper()) then
+        if not saveSeed then
+            bot.auto_collect = false
+        else
+            bot.auto_collect = true
+        end
+        bot:setInterval(Action.collect, 0.100)
+
+        if not singleBotMode then
+            while #bot:getPath(0, tileY[1]) == 0 and not bot:isInTile(0, tileY[1]) do
+                printLog("Waiting For Other Bot To Clear The Side...")
+                callMain("Waiting For Other Bot To Clear The Side...")
+                sleep(5000)
+                if getTile(bot.x-1, bot.y).fg ~= 0 and hasAccess(bot.x-1, bot.y) > 0 then
+                    while getTile(bot.x-1, bot.y).fg ~= 0 and hasAccess(bot.x-1, bot.y) > 0 and getTile(bot.x-1, bot.y).fg ~= 8 do
+                        bot:hit(bot.x-1, bot.y)
+                        sleep(delayBreak)
+                        reconnect(world, doorid)
+                    end
+                    sleep(1000)
+                end
+                reconnect(world, doorid)
+            end
+        end
+        
+        for _, ye in pairs(tileY) do
+            reconnect(world, doorid)
+
+            for ex = 1, 99 do
+                reconnect(world, doorid)
+                if getTile(ex, ye).fg %2 == 0 and getTile(ex, ye).fg ~= 2302 then
+                    if (ignoreCave and getTile(ex, ye).fg ~= 0) or (not ignoreCave and (getTile(ex, ye).fg ~= 0 or getTile(ex, ye).bg ~= 0)) then
+                        moveBotAndHandleTiles(ex, ye, world, doorid)
+                    end
+                end
+            end
+
+            if hasGoThere then
+                if trashBlocks then
+                    for _, block in pairs(blocksID) do
+                        if findItem(block) > 190 then
+                            printLog("Throwing Away "..getInfo(block).name)
+                            bot:trash(block, findItem(block))
+                            sleep(1000)
+                            reconnect(world, doorid)
+                        end
+                    end
+                end
+    
+                for _, seed in pairs(seedsID) do
+                    if findItem(seed) > 190 then
+                        droppingSeed = true
+                        while findItem(seed) > 0 do
+                            dropItem(seed, seedStorage, seedStorageDoorID)
+                            sleep(500)
+                        end
+                    end
+                end
+    
+                if droppingSeed then
+                    droppingSeed = false
+                    warps(world, doorid)
+                    bot.auto_collect = true
+                    if worldNuked then
+                        break
+                    end
+                end
+            end
+            
+        end
+    end
+end
+
+function placeDirt(world, doorid)
+    local currentY = 0
+    local placeY = {}
+    placeYList = {}
+
+    for i = 22, 2, -2 do
+        table.insert(placeYList, i)
+    end
+    
+    for i = indexBot, #placeYList, #selectedBots do
+        table.insert(placeY, placeYList[i])
+    end
+
+    warps(world, doorid)
+    if not worldNuked and bot:isInWorld(world:upper()) then
+        printLog("Placing Dirt")
+        callMain("Placing Dirt")
+        for _, ye in pairs(placeY) do
+            reconnect(world, doorid)
+            for ex = 1, 98 do
+                reconnect(world, doorid)
+                if getTile(ex, ye).fg == 0 and hasAccess(ex, ye) > 0 then
+                    
+                    if findItem(2) == 0 then
+                        farmDirt(world, doorid)
+                    end
+                    
+                    if #bot:getPath(ex, ye-1) > 0 then
+                        if #bot:getPath(ex, ye-1) > 5 then
+                            bot:findPath(ex, ye-1)
+                            sleep(100)
+                        else
+                            bot:moveTile(ex, ye-1)
+                            sleep(100)
+                        end
+                    end
+                    
+                    if bot:isInTile(ex, ye-1) then
+                        if currentY ~= ye then
+                            currentY = ye
+                            printLog("Currently In Row Y "..ye)
+                            callMain("Currently In Row Y "..ye)
+                        end
+                        for _, i in pairs(mode3Tile) do
+                            botPing = bot:getPing()
+                            if bot:getWorld():isValidPosition((bot.x + i) * 32, (bot.y+1) * 32) then
+                                while getTile(bot.x+i, bot.y+1).fg == 0 and hasAccess(bot.x+i, bot.y+1) > 0 and findItem(2) > 0 and getTile(bot.x+i, bot.y+1).x < 99 do
+                                    bot:place(bot.x+i, bot.y+1, 2)
+                                    if dynamicDelay then
+                                        sleep(math.max(0, (bot:getPing() - botPing) * 10 ) + delayPlace )
+                                    else
+                                        sleep(delayPlace)
+                                    end
+                                    reconnect(world, doorid, ex, ye-1)
+                                end
+                            end
+                        end
+                    end
+                    
+                end
+            end
+        end
+
+        printLog("Filling The Empty Tile With Dirt...")
+        callMain("Filling The Empty Tile With Dirt...")
+        bot.auto_collect = true
+        bot.collect_range = 3
+        for ye = 24, 52, 2 do
+            reconnect(world, doorid)
+            for ex = 1, 98 do
+                reconnect(world, doorid)
+
+                if getTile(ex, ye).fg == 0 and hasAccess(ex, ye) > 0 then
+                    if findItem(2) == 0 then
+                        farmDirt(world, doorid)
+                    end
+
+                    if #bot:getPath(ex, ye-1) > 0 then
+                        if #bot:getPath(ex, ye-1) > 5 then
+                            bot:findPath(ex, ye-1)
+                            sleep(100)
+                        else
+                            bot:moveTile(ex, ye-1)
+                            sleep(100)
+                        end
+                    end
+
+                    if bot:isInTile(ex, ye-1) then
+                        botPing = bot:getPing()
+                        while getTile(bot.x, bot.y+1).fg == 0 and findItem(2) > 0 and hasAccess(bot.x, bot.y+1) > 0 do
+                            bot:place(bot.x, bot.y+1, 2)
+                            if dynamicDelay then
+                                sleep(math.max(0, (bot:getPing() - botPing) * 10 ) + delayPlace )
+                            else
+                                sleep(delayPlace )
+                            end
+                            reconnect(world, doorid, ex, ye-1)
+                        end
+                    end
+                    
+                end
+                
+            end
+        end
+        
+    end
+end
+
+function isPlantable(x,y)
+    local tempTile = getTile(x,y + 1)
+    if not tempTile.fg then return false end
+    local collision = getInfo(tempTile.fg).collision_type
+    return tempTile and ( collision == 1 or collision == 2 or collision == 4)
+end
+
+function readyTreeScan()
+    local totalTree = 0
+    for _, ye in pairs(tileY) do
+        for ex = 2, 22 do
+            if getTile(ex, ye).fg == 3 and getTile(ex, ye):canHarvest() and hasAccess(ex, ye) > 0 then
+                totalTree = totalTree + 1
+            end
+        end
+    end
+    return totalTree
+end
+
+function collectDirtSeed(world, doorid)
+    bot.collect_range = 2
+    bot:setInterval(Action.collect, 0.150)
+    warps(world, doorid)
+    if not worldNuked and bot:isInWorld(world:upper()) then
+        for _, ye in pairs(tileY) do
+            for _, obj in pairs(getObjects()) do
+                if obj.id == 3 and math.floor(obj.y/32) == ye and findItem(3) < dSeedAmount then
+                    if #bot:getPath(math.floor(obj.x/32), math.floor(obj.y/32)) > 0 then
+                        bot:findPath(math.floor(obj.x/32), math.floor(obj.y/32))
+                        sleep(100)
+                        reconnect(world, doorid)
+                    end
+                end
+            end
+        end
+    end
+end
+
+function plantDirt(world, doorid)
+    if #selectedBots > 3 then
+        dSeedAmount = 50
+    else
+        dSeedAmount = 100
+    end
+
+    if saveSeed then
+        for i = 1, 5 do
+            if findItem(3) < dSeedAmount then
+                takeItem(3, dSeedAmount, seedStorage, seedStorageDoorID)
+                sleep(300)
+            end
+        end
+    else
+        collectDirtSeed(world, doorid)
+    end
+
+    warps(world, doorid)
+    if not worldNuked and bot:isInWorld(world:upper()) then
+        printLog("Planting Dirt")
+        callMain("Planting Dirt")
+
+        for _, ye in pairs(tileY) do
+            reconnect(world, doorid)
+            for ex = 2, 32 do
+                reconnect(world, doorid)
+                if getTile(ex, ye).fg == 0 and isPlantable(ex, ye) and hasAccess(ex, ye) > 0 and findItem(3) > 0 then
+                    if #bot:getPath(ex, ye) > 0 then
+                        if #bot:getPath(ex, ye) > 5 then
+                            bot:findPath(ex, ye)
+                        else
+                            bot:moveTile(ex, ye)
+                        end
+                        sleep(100)
+                    end
+
+                    if bot:isInTile(ex, ye) then
+                        for _, i in pairs(mode3Tile) do
+                            while getTile(bot.x+i, bot.y).fg == 0 and isPlantable(bot.x+i, bot.y) and hasAccess(bot.x+i, bot.y) > 0 and findItem(3) > 0 and getTile(bot.x+i, bot.y).x < 32 do
+                                bot:place(bot.x+i, bot.y, 3)
+                                if dynamicDelay then
+                                    sleep(math.random(delayPlace-10, delayPlace+10))
+                                else
+                                    sleep(delayPlace)
+                                end
+                                reconnect(world, doorid, ex, ye)
+                            end
+                        end
+                    end
+                    
+                end
+            end
+        end
+        
+    end
+end
+
+function harvestDirt(world, doorid)
+    warps(world, doorid)
+    if not worldNuked and bot:isInWorld(world:upper()) then
+        printLog("Harvesting Dirt Trees")
+        callMain("Harvesting Dirt Trees")
+        bot.auto_collect = true
+
+        for _, ye in pairs(tileY) do
+            reconnect(world, doorid)
+            for _, tile in pairs(getTiles()) do
+                if tile.fg == 3 and tile:canHarvest() and hasAccess(tile.x, tile.y) > 0 and findItem(2) < 200 and tile.y == ye then
+                    if #bot:getPath(tile.x, tile.y) > 0 then
+                        if #bot:getPath(tile.x, tile.y) > 5 then
+                            bot:findPath(tile.x, tile.y)
+                            sleep(100)
+                        else
+                            bot:moveTile(tile.x, tile.y)
+                            sleep(100)
+                        end
+                    end
+
+                    if bot:isInTile(tile.x, tile.y) then
+                        for _, i in pairs(mode3Tile) do
+                            while getTile(bot.x+i, bot.y).fg == 3 and getTile(bot.x+i, bot.y):canHarvest() and hasAccess(bot.x+i, bot.y) > 0 do
+                                bot:hit(bot.x+i, bot.y)
+                                if dynamicDelay then
+                                    sleep(math.random(delayBreak-10, delayBreak+10))
+                                else
+                                    sleep(delayBreak)
+                                end
+                                reconnect(world, doorid, tile.x, tile.y)
+                            end
+                        end
+                    end
+                    
+                end
+            end
+        end
+        
+    end
+end
+
+function farmDirt(world, doorid)
+    warps(world, doorid)
+    if not worldNuked and bot:isInWorld(world:upper()) then
+        bot.auto_collect = true
+
+        if readyTreeScan() > 0 then
+            harvestDirt(world, doorid)
+        else
+            plantDirt(world, doorid)
+            while readyTreeScan() == 0 and gscanBlock(3) > 0 do
+                printLog("Waiting for the Tree to Grow")
+                callMain("Waiting for the Tree to Grow")
+                sleep(30000)
+                reconnect(world, doorid)
+            end
+            if readyTreeScan() > 0 then
+                harvestDirt(world, doorid)
+            end
+        end
+        
+    end
+end
+
+function checkWorld(world, doorid)
+    notYetDone = false
+    warps(world, doorid)
+    if not worldNuked and bot:isInWorld(world:upper()) then
+        for y = 2, 52, 2 do
+            if y ~= 22 and y ~= 24 then
+                for x = 1, 98 do
+                    if getTile(x, y).fg == 0 then
+                        notYetDone = true
+                        break
+                    end
+                end
+            end
+        end
+    end
+end
+
+function cleanWorld(world, doorid)
+    bot.collect_range = 4
+    local blocksID = {2, 4, 10, 14}
+
+    warps(world, doorid)
+    if not worldNuked and bot:isInWorld(world:upper()) then
+        printLog("Cleaning up The World...")
+        callMain("Cleaning up The World...")
+
+        for _, block in pairs(blocksID) do
+            if findItem(block) > 0 then
+                printLog("Throwing Away "..getInfo(block).name)
+                bot:trash(block, findItem(block))
+                sleep(1000)
+                reconnect(world, doorid)
+            end
+        end
+        
+        while readyTreeScan() > 0 do
+            harvestDirt(world, doorid)
+            for _, block in pairs(blocksID) do
+                if findItem(block) > 0 then
+                    printLog("Throwing Away "..getInfo(block).name)
+                    bot:trash(block, findItem(block))
+                    sleep(1000)
+                    reconnect(world, doorid)
+                end
+            end
+            reconnect(world, doorid)
+        end
+
+        printLog("Cleaning Floating Items...")
+        callMain("Cleaning Floating Items...")
+        bot.auto_collect = true
+        for _, ye in pairs(tileY) do
+            reconnect(world, doorid)
+            for _, obj in pairs(getObjects()) do
+                if math.floor(obj.y/32) == ye and #bot:getPath(math.floor(obj.x/32), math.floor(obj.y/32)) > 0 then
+                    bot:findPath(math.floor(obj.x/32), math.floor(obj.y/32))
+                    sleep(200)
+                    if findItem(obj.id) > 150 then
+                        bot:trash(obj.id, findItem(obj.id))
+                        sleep(1000)
+                    end
+                    reconnect(world, doorid)
+                end
+            end
+        end
+        
+    end
+end
+
+function saveToFile(value, filename)
+    local file = io.open(filename, "r")
+    local isDuplicate = false
+
+    if file then
+        for line in file:lines() do
+            if line == value then
+                isDuplicate = true
+                break
+            end
+        end
+        file:close()
+    end
+
+    if not isDuplicate then
+        file = io.open(filename, "a")
+        if file then
+            file:write(value .. "\n")
+            file:close()
+        end
+    end
+
+    sleep(200)
+end
+
+function scanPlat(world, doorid)
+    local plat = 0
+    for _, ex in pairs(platX) do
+        for _, tile in pairs(getTiles()) do
+            if tile.x == ex and tile.fg == platformID then
+                plat = plat + 1
+                reconnect(world, doorid)
+            end
+        end
+    end
+    return plat
+end
+
+function removeWorld(lineToRemove, filename)
+    local file = io.open(filename, "r")
+    if not file then
+        printCrit("Tidak dapat membuka file: " .. filename)
+        return
+    end
+
+    local lines = {}
+    for line in file:lines() do
+        if line ~= lineToRemove then
+            table.insert(lines, line)
+        end
+    end
+    file:close()
+
+    file = io.open(filename, "w")
+    if not file then
+        printCrit("Tidak dapat menulis ke file: " .. filename)
+        return
+    end
+
+    for _, line in ipairs(lines) do
+        file:write(line .. "\n")
+    end
+    file:close()
+    
+    printLog("World '" .. lineToRemove .. "' Has Been Deleted.")
+end
+
+-- Malady
+bot:getConsole().enabled = true
+
+function useConsume()
+    while findItem(consumeID) ~= 1 do
+        takeItem(consumeID, 1, consumeStorage, consumeStorageDoorID)
+        if findItem(consumeID) ~= 1 then
+            sleep(3000)
+        end
+    end
+
+    maladyFound = checkMalady()
+    sleep(300)
+
+    if not maladyFound then
+        if findItem(consumeID) > 0 and bot:isInWorld() then
+            if getTile(bot.x, bot.y) == 6 then
+                warps(consumeStorage, consumeStorageDoorID)
+            end
+
+            printLog("Using "..getInfo(consumeID).name)
+            bot:use(consumeID)
+            sleep(2000)
+        end
+    end
+end
+
+function clearConsole()
+    for i = 1, 50 do
+        bot:getConsole():append("")
+    end
+end
+
+function findStatus()
+    for _, con in pairs(bot:getConsole().contents) do
+        if con:find("Status:") and bot.status == BotStatus.online then
+            return true
+        end
+    end
+    return false
+end
+
+function maladyCheck(world, doorid)
+    maladyFound = false
+    warps(world, doorid)
+    if not worldNuked and bot:isInWorld(world:upper()) then
+        maladyFound = checkMalady()
+        sleep(200)
+        if not maladyFound or (maladyFound and totalSeconds < 420) then
+            
+            while maladyFound and totalSeconds < 300 do
+                printLog("Bot Waiting for ".. totalSeconds .." Second Til Malady is Gone")
+                sleep(30000)
+                maladyFound = checkMalady()
+                sleep(200)
+                reconnect(world, doorid)
+            end
+
+            maladyFound = checkMalady()
+            sleep(100)
+
+            if not maladyFound then
+                printLog("Don't Have Malady")
+            end
+
+            if autoConsume and not maladyFound then
+                useConsume()
+                sleep(200)
+                if not bot:isInWorld(world:upper()) then
+                    warps(world, doorid)
+                end
+            elseif autoGetMalady and not maladyFound then
+                callNotif("Trying to Get Malady...", false)
+                printLog("Trying to Get Malady...")
+                malAttempt = 0
+
+                while not maladyFound do
+                    reconnect(world, doorid)
+                    
+                    bot:say(spamText[math.random(1, #spamText)])
+                    sleep(math.random(10000, 12000))
+
+                    if math.random() < 0.2 then
+                        for i = 1, 2 do
+                            reconnect(world, doorid)
+                            if #bot:getPath(bot.x-1, bot.y) > 0 and bot.status == BotStatus.online then
+                                bot:moveLeft()
+                                sleep(200)
+                            end
+                            if #bot:getPath(bot.x+1, bot.y) > 0 and bot.status == BotStatus.online then
+                                bot:moveRight()
+                                sleep(200)
+                            end
+                            if #bot:getPath(bot.x, bot.y-1) > 0 and bot.status == BotStatus.online then
+                                bot:moveUp()
+                                sleep(200)
+                            end
+                            if #bot:getPath(bot.x, bot.y+1) > 0 and bot.status == BotStatus.online then
+                                bot:moveDown()
+                                sleep(200)
+                            end
+                            if #bot:getPath(bot.x+1, bot.y) > 0 and bot.status == BotStatus.online then
+                                bot:moveRight()
+                                sleep(200)
+                            end
+                            if #bot:getPath(bot.x-1, bot.y) > 0 and bot.status == BotStatus.online then
+                                bot:moveLeft()
+                                sleep(200)
+                            end
+                        end
+                    end
+                    
+                    -- Pengecekan Malady
+                    if malAttempt %2 == 0 then
+                        maladyFound = checkMalady()
+                        sleep(200)
+                        if not maladyFound and malAttempt >= 30 then
+                            printLog("Will Leave World and Will Retrying to Get Malady")
+                            while bot:isInWorld() do
+                                bot:leaveWorld()
+                                sleep(5000)
+                            end
+                            warps(world, doorid)
+                            malAttempt = 0
+                        end
+                    end
+
+                    malAttempt = malAttempt + 1 
+                end
+                printLog("Got ".. (maladyName or "None") .." Malady!")
+                callNotif("Got ".. (maladyName or "None") .." Malady!", false)
+            end
+        else
+            printLog("Has ".. (maladyName or "None") .." Malady!")
+        end
+    end
+end
+
+function checkMalady()
+    if bot:isInWorld() and bot.status == BotStatus.online then
+        clearConsole()
+        sleep(100)
+        bot:say("/status")
+        sleep(700)
+
+        if findStatus() then
+            for _, con in pairs(bot:getConsole().contents) do
+                if con:lower():find("malady:") then
+                    maladyName = con:match("Malady:%s*([%S%s]+)%s*!")
+
+                    local hoursMatch = con:match("(%d+) hours?")
+                    local minsMatch = con:match("(%d+) mins?")
+                    local secsMatch = con:match("(%d+) secs?")
+
+                    maladyHours = tonumber(hoursMatch) or 0
+                    maladyMins = tonumber(minsMatch) or 0
+                    maladySecs = tonumber(secsMatch) or 0
+
+                    totalSeconds = (maladyHours * 3600) + (maladyMins * 60) + maladySecs
+                    -- printLog("Total seconds: "..totalSeconds)
+
+                    printLog("Malady: " .. (maladyName or "None") .. ". Time Left: " .. maladyHours .. " hours, " .. maladyMins .. " mins, " .. maladySecs .. " secs")
+                    return true
+                end
+            end
+        end 
+    end
+    return false
+end
+
+-- =================================================================
+growmojis = {"<:GEvil:1208095295133581353>","<:GPlead:1208095171745550346>","<:Geyes:1208095101348487188>"}
+gmoji = growmojis[math.random(1,#growmojis)]
+
+function getUptime()
+    local elapsedTime = os.time() - startTime
+    return string.format("%d Day %02d Hours %02d Minutes", math.floor(elapsedTime / 86400), math.floor((elapsedTime % 86400) / 3600), math.floor((elapsedTime % 3600) / 60))
+end
+
+function getBotStatus(status)
+    local status_Naming = {
+        [BotStatus.offline] = "Offline",
+        [BotStatus.online] = "Online",
+        [BotStatus.account_banned] = "Banned",
+        [BotStatus.location_banned] = "Location Banned",
+        [BotStatus.server_overload] = "Login Failed",
+        [BotStatus.too_many_login] = "Login Failed",
+        [BotStatus.maintenance] = "Maintenance",
+        [BotStatus.version_update] = "Version Update",
+        [BotStatus.server_busy] = "Server Busy",
+        [BotStatus.error_connecting] = "Error Connecting",
+        [BotStatus.logon_fail] = "Login Failed",
+        [BotStatus.http_block] = "HTTP Blocked",
+        [BotStatus.wrong_password] = "Wrong Password",
+        [BotStatus.advanced_account_protection] = "Advanced Account Protection",
+        [BotStatus.bad_name_length] = "Bad Name Length",
+        [BotStatus.invalid_account] = "Invalid Account",
+        [BotStatus.guest_limit] = "Guest Limit",
+        [BotStatus.changing_subserver] = "Changing Subserver",
+        [BotStatus.captcha_requested] = "Captcha",
+        [BotStatus.mod_entered] = "Mod Entered",
+        [BotStatus.high_load] = "High Load"
+    }
+    return status_Naming[status] or "offline"
+end
+
+function formatNumber(number)
+    local formatted = tostring(number)
+    if number >= 1000 then
+        formatted = formatted:reverse():gsub("(%d%d%d)", "%1,"):reverse()
+    end
+    return formatted
+end
+
+function getMessageID(url)
+    local msgid = ""
+    local webhook = Webhook.new(url)
+    webhook.embed1.use = true
+    webhook.embed1.description = "- "..bot.name:upper()
+    sleep(100)
+    webhook:send()
+    sleep(500)
+    msgid = webhook.message_id
+    return msgid
+end
+
+function callMain(act)
+    local mainWebhook = Webhook.new(mainWebhookURL)
+    mainWebhook.embed1.use = true
+    mainWebhook.embed1.title = "BOT INFO"
+    mainWebhook.embed1.color = 65280
+    mainWebhook.embed1.description = "Updated <t:".. os.time() ..":R>"
+    mainWebhook.embed1.thumbnail = "https://cdn.discordapp.com/attachments/1154009294853906554/1406777588780896361/Logo_Dinamis_dengan_Latar_Api.png?ex=68a3b339&is=68a261b9&hm=c40f93f6da3c02a9cde0bc350a13692bf25a7687074ecbe98329df05f0013287&"
+    
+    botStatus = ""
+    if getBotStatus(bot.status) == "Online" then
+        botStatus = getBotStatus(bot.status).." <a:onlinegif:1179100715747131474>"
+    else
+        botStatus = getBotStatus(bot.status).." <a:offlinegif:1179100927345561620>"
+    end
+    
+    mainWebhook.embed1:addField(
+        gmoji.." ".. bot.name:upper() .." (".. bot:getPing() ..")",
+        "Status: ".. botStatus .."\nLevel: ".. bot.level .."\nCurrent World ["..worldIndex.."/"..#botWorlds.."]: ".. bot:getWorld().name,
+        true
+    )
+    
+    mainWebhook.embed1:addField(
+        "<:checkz:1213392019104206858> Action",
+        act,
+        false
+    )
+
+    mainWebhook.embed1:addField(
+        "Script Uptime",
+        getUptime(),
+        false
+    )
+
+    mainWebhook.embed1.footer.text = "RIZKOGTI | DF V1.3.2\n".. os.date("!%a %b %d, %Y at %I:%M %p", os.time() + 7 * 60 * 60)
+
+    if mainMsgID ~= "" then
+        mainWebhook:edit(mainMsgID)
+    else
+        mainWebhook:send()
+    end
+
+    sleep(100)
+end
+
+function callNotif(msg, tag)
+    local mainEvent = Webhook.new(notifWebhookURL)
+    if tag then
+        mainEvent.content = "@everyone"
+        mainEvent.embed1.color = 16711680
+    else
+        mainEvent.embed1.color = 16776960
+    end
+    mainEvent.embed1.use = true
+    mainEvent.embed1.description = "**".. bot.name:upper().."** > ".. msg .. " <t:".. os.time() ..":R>"
+    mainEvent:send()
+
+    sleep(100)
+end
+
+rubotUrl = ""
+
+function callRubot()
+    local mainEvent = Webhook.new(rubotUrl)
+    mainEvent.embed1.use = true
+    mainEvent.embed1.description = "**".. getUsername():upper() .."** Has Started The Script With **".. #selectedBots .."** Bot <t:".. os.time() ..":R>"
+    mainEvent.embed1.color = 65280
+    mainEvent.embed1.footer.text = "DF V1.3.2 | ".. os.date("!%a %b %d, %Y at %I:%M %p", os.time() + 7 * 60 * 60)
+    mainEvent:send()
+    sleep(100)
+end
+
+function callUptime()
+    local mainEvent = Webhook.new(rubotUrl)
+    mainEvent.embed1.use = true
+    mainEvent.embed1.description = "**".. getUsername():upper() .."** Has Been Running the Script for "..getUptime()
+    mainEvent.embed1.color = 16776960
+    mainEvent.embed1.footer.text = "DF V1.3.2 | ".. os.date("!%a %b %d, %Y at %I:%M %p", os.time() + 7 * 60 * 60)
+    mainEvent:send()
+    sleep(100)
+end
+-- =================================================================
+
+getSelectedBot()
+sleep(200)
+getIndexBot()
+sleep(200)
+
+function dfMain()
+    if indexBot == 1 then printSelectedBot() end
+    divWorld()
+    sleep(200)
+    readFarmList()
+    sleep(200)
+    spreadWorld()
+    sleep(200)
+
+    printLog("Getting Message ID...")
+    mainMsgID = getMessageID(mainWebhookURL)
+    sleep(500)
+    printLog("Message ID: "..mainMsgID)
+
+    if autoTakePickaxe and findItem(pickaxeID) == 0 then
+        takePickaxe()
+    end
+    
+    for i, worldz in pairs(botWorlds) do
+        worldIndex = i
+        dfWorld, dfWorldDoorID = string.match(worldz, "([^|]+)"..worldSeparator.."([^|]+)")
+        sleep(200)
+        warps(dfWorld, dfWorldDoorID)
+        if not worldNuked and bot:isInWorld(dfWorld:upper()) then
+            maladyFound = checkMalady()
+            maladyWorld = maladyWorlds[math.random(#maladyWorlds)]
+            sleep(100)
+            if not maladyFound and (autoConsume or autoGetMalady) then
+                maladyCheck(maladyWorld, "")
+            end
+            clearSide(dfWorld, dfWorldDoorID)
+            sleep(300)
+            if putPlatform then
+                putPlat(dfWorld, dfWorldDoorID )
+                sleep(300)
+            end
+            makeRow(dfWorld, dfWorldDoorID)
+            sleep(300)
+            placeDirt(dfWorld, dfWorldDoorID)
+            sleep(300)
+            cleanWorld(dfWorld, dfWorldDoorID)
+            sleep(300)
+            if indexBot == 1 and saveToTxt then
+                checkWorld(dfWorld, dfWorldDoorID)
+                if not notYetDone then
+                    local stringTxt = dfWorld:upper()..worldSeparator..dfWorldDoorID:upper()
+                    saveToFile(stringTxt, fileName)
+                    if autoDeleteFinishedWorld then
+                        removeWorld(stringTxt, filePath)
+                    end
+                end
+            end
+            printLog("Has Just Finished in World "..dfWorld:upper())
+            callMain("Has Just Finished in World "..dfWorld:upper())
+            callNotif("Has Just Finished in World "..dfWorld:upper(), false)
+        end
+        sleep(300)
+        callUptime()
+    end
+    
+    printLog("All World Done!")
+    callMain("All World Done!")
+    callNotif("All World Done!", false)
+end
+
+if true then
+    if singleBotMode then
+        if bot.index == 1 then
+            callRubot()
+        end
+    else
+        if indexBot == 1 then
+            callRubot()
+        end
+    end
+
+    dfMain()
+    
+    for i = 1, 5 do
+        if bot:isInWorld() then
+            bot:leaveWorld()
+            sleep(5000)
+        end
+    end
+    bot.auto_reconnect = false
+    sleep(500)
+    bot:disconnect()
+    sleep(1000)
+else
+    if indexBot == 1 then
+        messageBox = MessageBox.new()
+        messageBox.title = "Rubot"
+        messageBox.description = "Lucifer Not Registered!\nhttps://discord.gg/YYWCDpVNes"
+        messageBox:send()
+    end
+end
