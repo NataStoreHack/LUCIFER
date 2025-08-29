@@ -1,0 +1,39 @@
+local accounts = [[
+email@gmail.com|xxx:xxx:xxx:xxx
+]]
+
+for account in accounts:gmatch("[^\n]+") do
+    local email, sisa = account:match("([^|]+)|(.+)")
+
+    if email and sisa then
+        local mac, rid, wk, ltoken = sisa:match("([^|]+):([^|]+):([^|]+):(.+)")
+        if mac and rid and wk and ltoken then
+            local details = {
+                ["display"] = email,
+                ["secret"] = email,
+                ["name"] = ltoken,
+                ["rid"] = rid,
+                ["mac"] = mac,
+                ["wk"] = wk,
+                ["platform"] = 0,
+            }
+            local bot = addBot(details)
+            bot:getConsole().enabled = true
+            sleep(3)
+        end
+    else
+        local mac, rid, wk, ltoken = sisa:match("([^|]+):([^|]+):([^|]+):(.+)")
+        if mac and rid and wk and ltoken then
+            local details = {
+                ["name"] = ltoken,
+                ["rid"] = rid,
+                ["mac"] = mac,
+                ["wk"] = wk,
+                ["platform"] = 0,
+            }
+            local bot = addBot(details)
+            bot:getConsole().enabled = true
+            sleep(3)
+        end
+    end
+end
