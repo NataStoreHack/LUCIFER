@@ -1,0 +1,748 @@
+-- Don't Change this
+DScript = "https://discord.com/invite/MAAX8guNWF"
+
+-- World For PNB Settings
+PNBWorld = {"NATACOBAMAENGT"}
+PNBDoorID = "NATA2008"
+
+-- World For Taking Blocks Settings
+blockWorld = {"AGA30K1"}
+blockDoorID = "AUTO1"
+
+-- Pnb Mode Settings
+pnbMode = "DOWN" -- UP / DOWN
+
+-- Block ID Settings
+blockID = 5666
+
+-- Marker ID Settings
+markerID = 20 -- Example ID of Western Banner
+
+-- World For Dropping Seed Settings
+seedWorld = "NATAHFEST"
+seedDoorID = "AGAHFEST"
+
+-- Gaut Settings
+useGaut = true
+maxSeedInBP = 50 -- For No Gaut Only
+
+-- Max Gems Settings
+maxGems = false
+maxGemsInWorld = 1000
+
+-- Buy Pack Settings
+autoBuyPack = false
+gemsBeforeBuyPack = 10000 -- Example: 10000, Bot will keep gems until 10000 then buy pack
+packName = "world_lock"
+packPrice = 2000
+packItemID = { 242 }
+packWorld = "PACKWORLD"
+packDoorID = "IDDOOR"
+
+-- Take Pickaxe Settings
+takePickaxe = true
+pickaxeWorld = "NATADFF"
+pickaxeDoorID = "PICKAXE"
+
+-- Auto Remove Settings
+autoRemove = true
+autoRemoveOnLevel = 80
+
+-- Delay Settings
+delayHit = 180
+delayPlace = 160
+
+-- Auto Rest Settings
+autoRest = false
+restTime = 30      -- In Second
+restInterval = 300 -- In Second, Example 300 Second = 5 Minutes
+
+-- Webhook Settings
+useWebhook = true
+webhookUrl = "https://discord.com/api/webhooks/1413826393489539204/3Xf2FprXAajCaVPJk6JLIepySNgA6rg96pogvqwadbzaEUr7CfKO-2lN9OkV3QY9iUaJ"
+
+bot = getBot()
+world = bot:getWorld()
+inventory = bot:getInventory()
+if useGaut == true then
+    bot.auto_collect = false
+else
+    bot.auto_collect = true
+end
+bot.collect_range = 4
+bot.move_range = 3
+bot.reconnect_interval = 45
+bot.auto_leave_on_mod = true
+
+seedID = 5667
+
+PNBDoorID = string.upper(PNBDoorID)
+blockDoorID = string.upper(blockDoorID)
+seedWorld = string.upper(seedWorld)
+seedDoorID = string.upper(seedDoorID)
+pickaxeWorld = string.upper(pickaxeWorld)
+pickaxeDoorID = string.upper(pickaxeDoorID)
+packWorld = string.upper(packWorld)
+packDoorID = string.upper(packDoorID)
+pnbMode = string.upper(pnbMode)
+
+lastRestTime = os.time()
+seedIcon = "<:seeds:1169922333369172048>"
+blockIcon = "<:dirt:1172389549666729994>"
+
+local totalBlock = 0
+local totalPack = 0
+local totalSeed = 0
+function callWebhook(act, blocks, seeds, pack)
+    local wh = Webhook.new(webhookUrl)
+    wh.username = "NataDCoco"
+    wh.avatar_url = "https://cdn.discordapp.com/attachments/1154009294853906554/1406777588780896361/Logo_Dinamis_dengan_Latar_Api.png?ex=68a3b339&is=68a261b9&hm=c40f93f6da3c02a9cde0bc350a13692bf25a7687074ecbe98329df05f0013287&"
+    wh.embed1.use = true
+    wh.embed1.author.name = "PNB Multiworld by NataDCoco"
+    wh.embed1.author.url = "https://discord.com/invite/MAAX8guNWF"
+    wh.embed1.color = 5763719
+    wh.embed1:addField("Bot Name", "<:headgrow:1155911234202386493> " .. string.upper(getBot().name), true)
+    wh.embed1:addField("Bot Level", getBot().level, true)
+    wh.embed1:addField("Bot Gems", ":gem: " .. getBot().gem_count, true)
+    wh.embed1:addField("Status", getStatus(), true)
+    wh.embed1:addField("Current World", world.name, true)
+    wh.embed1:addField("Activity", act, true)
+    if blocks then
+        totalBlock = blocks
+    end
+
+    if seeds then
+        totalSeed = seeds
+    end
+
+    if pack then
+        totalPack = totalPack + pack
+    end
+
+    wh.embed1:addField("Block Left", "" .. blockIcon .. " " .. totalBlock, true)
+    wh.embed1:addField("Dropped Seed", "" .. seedIcon .. " " .. totalSeed, true)
+    wh.embed1:addField("Dropped Pack", ":package: " .. totalPack, true)
+    wh.embed1:addField("Active Time", getBot():getActiveTime(), true)
+    wh.embed1.footer.text = os.date("!%a %b %d, %Y at %I:%M %p", os.time() + 7 * 60 * 60)
+    wh:send()
+end
+
+function getStatus()
+    local online = "<:online:1155921454127390790>"
+    local offline = "<:offline:1155921474742403072>"
+    if getBot().status == BotStatus.online then
+        return online .. " Online"
+    elseif getBot().status == BotStatus.account_banned then
+        return offline .. " Account Banned"
+    elseif getBot().status == BotStatus.location_banned then
+        return offline .. " Location Banned"
+    elseif getBot().status == BotStatus.maintenance then
+        return offline .. " Maintenance"
+    else
+        return offline .. " Offline"
+    end
+end
+
+function join(worldname, doorid)
+    if bot.status ~= BotStatus.online then
+        while bot.status ~= BotStatus.online do
+            bot:disconnect()
+            sleep(1000)
+            bot:connect()
+            sleep(30000)
+        end
+    end
+    bot:warp(worldname, doorid)
+    sleep(6000)
+    local attemptJ = 0
+    while not bot:isInWorld(worldname) do
+        bot:warp(worldname, doorid)
+        sleep(6000)
+        attemptJ = attemptJ + 1
+        if attemptJ > 2 then
+            nuked = true
+            return
+        end
+    end
+    nuked = false
+    if bot:isInWorld() then
+        getPos()
+        while getTile(Botx, Boty).fg == 6 do
+            bot:warp(worldname, doorid)
+            sleep(6000)
+            getPos()
+        end
+    end
+end
+
+function recon(worldname, doorid)
+    if bot.status ~= BotStatus.online then
+        while bot.status ~= BotStatus.online do
+            bot:disconnect()
+            sleep(1000)
+            bot:connect()
+            sleep(30000)
+        end
+    end
+    if not bot:isInWorld(worldname) then
+        bot:warp(worldname, doorid)
+        sleep(6000)
+        local attemptJ = 0
+        while not bot:isInWorld(worldname) and not nuked do
+            bot:warp(worldname, doorid)
+            sleep(6000)
+            attemptJ = attemptJ + 1
+            if attemptJ > 2 then
+                nuked = true
+                return
+            end
+        end
+        nuked = false
+    end
+    if bot:isInWorld() then
+        getPos()
+        while getTile(Botx, Boty).fg == 6 do
+            bot:warp(worldname, doorid)
+            sleep(6000)
+            getPos()
+        end
+    end
+end
+
+function getPos()
+    if bot:isInWorld() then
+        localbot = world:getLocal()
+        if localbot then
+            Botx = localbot.posx // 32
+            Boty = localbot.posy // 32
+        end
+    end
+end
+
+function getPnbPos()
+    if bot:isInWorld() then
+        localbot = world:getLocal()
+        if localbot then
+            Pnbx = localbot.posx // 32
+            Pnby = localbot.posy // 32
+        end
+    end
+end
+
+function getIndex()
+    for i, bots in pairs(getBots()) do
+        if bots.name == bot.name then
+            return i
+        end
+    end
+end
+
+function goMarker(list)
+    recon(list, PNBDoorID)
+    if bot:isInWorld(list) then
+        for _, tile in pairs(getTiles()) do
+            recon(list, PNBDoorID)
+            if tile.fg == markerID or tile.bg == markerID then
+                botIndex = getIndex()
+                if not bot:findPath(tile.x + botIndex - 1, tile.y) then
+                    recon(list, PNBDoorID)
+                    bot:findPath(tile.x + botIndex - 1, tile.y)
+                end
+                if bot:isInTile(tile.x + botIndex - 1, tile.y) then
+                    if useWebhook == true then
+                        callWebhook("Starting...", nil, nil, nil)
+                    end
+                    sleep(1000)
+                    getPnbPos()
+                end
+            end
+        end
+    end
+end
+
+local processedBlocks = {}
+
+function takeBlockMain()
+    bot.auto_collect = false
+    for i, blok in pairs(blockWorld) do
+        blok = string.upper(blok)
+        if not processedBlocks[blok] then
+            recon(blok, blockDoorID)
+            if bot:isInWorld(blok) then
+                if gscanFloat(blockID) < 1 and i ~= #blockWorld then
+                    processedBlocks[blok] = true
+                end
+                if gscanFloat(blockID) < 1 and i == #blockWorld then
+                    if useWebhook == true then
+                        callWebhook("No Block Left, Stopping Script", gscanFloat(blockID), nil, nil)
+                    end
+                    bot:stopScript()
+                elseif gscanFloat(blockID) > 0 then
+                    recon(blok, blockDoorID)
+                    takeBlock(blok)
+                end
+            end
+        end
+    end
+end
+
+function takeBlock(list)
+    bot.auto_collect = false
+    recon(list, blockDoorID)
+    if bot:isInWorld(list) then
+        for _, obj in pairs(getObjects()) do
+            if obj.id == blockID then
+                objx, objy = obj.x // 32, obj.y // 32
+                if not bot:findPath(objx, objy) then
+                    recon(list, blockDoorID)
+                    bot:findPath(objx, objy)
+                end
+                if bot:isInTile(objx, objy) then
+                    sleep(200)
+                    bot:collectObject(obj.oid, 4)
+                end
+                sleep(300)
+                if inventory:getItemCount(blockID) > 190 then
+                    break
+                end
+            end
+        end
+        if useWebhook == true then
+            callWebhook("Taking Block", gscanFloat(blockID), nil, nil)
+        end
+    end
+end
+
+function checkPos(list)
+    recon(list, PNBDoorID)
+    if not bot:isInTile(Pnbx, Pnby) then
+        recon(list, PNBDoorID)
+        bot:findPath(Pnbx, Pnby)
+        sleep(500)
+        getPos()
+    end
+end
+
+function placeBlock(list)
+    recon(list, PNBDoorID)
+    checkPos(list)
+    if bot:isInTile(Pnbx, Pnby) then
+        if useGaut == false then
+            bot.auto_collect = true
+        end
+        getPos()
+        checkPos(list)
+        if pnbMode == "UP" then
+            if getTile(Botx, Boty - 2).fg == 0 and getTile(Botx, Boty - 2).bg == 0 then
+                checkPos(list)
+                sleep(delayPlace)
+                bot:place(Botx, Boty - 2, blockID)
+            end
+        else
+            if getTile(Botx, Boty + 2).fg == 0 and getTile(Botx, Boty + 2).bg == 0 then
+                checkPos(list)
+                sleep(delayPlace)
+                bot:place(Botx, Boty + 2, blockID)
+            end
+        end
+    end
+end
+
+function destroyBlock(list)
+    checkPos(list)
+    if bot:isInTile(Pnbx, Pnby) then
+        if pnbMode == "UP" then
+            getPos()
+            while getTile(Botx, Boty - 2).fg == blockID or getTile(Botx, Boty - 2).bg == blockID and getTile(Botx, Boty - 2).fg ~= 0 or getTile(Botx, Boty - 2).bg ~= 0 do
+                checkPos(list)
+                bot:hit(Botx, Boty - 2)
+                sleep(delayHit)
+            end
+        else
+            getPos()
+            while getTile(Botx, Boty + 2).fg == blockID or getTile(Botx, Boty + 2).bg == blockID and getTile(Botx, Boty + 2).fg ~= 0 or getTile(Botx, Boty + 2).bg ~= 0 do
+                checkPos(list)
+                bot:hit(Botx, Boty + 2)
+                sleep(delayHit)
+            end
+        end
+    end
+end
+
+function pnbMain(list)
+    if useWebhook == true then
+        callWebhook("PNB")
+    end
+    recon(list, PNBDoorID)
+    if not bot:isInTile(Pnbx, Pnby) then
+        bot:findPath(Pnbx, Pnby)
+        sleep(200)
+    end
+    while inventory:getItemCount(blockID) > 0 do
+        checkPos(list)
+        placeBlock(list)
+        destroyBlock(list)
+        if useGaut == false then
+            if inventory:getItemCount(seedID) > maxSeedInBP then
+                sleep(400)
+                dropSeed()
+            end
+        end
+        if autoRest == true then
+            restt()
+        end
+        recon(list, PNBDoorID)
+    end
+    recon(list, PNBDoorID)
+end
+
+function retJing(x, y)
+    gaut = getTile(x, y).fg
+    itemCount = getTile(x, y):getExtra().item_count
+    if gaut == 6948 then
+        bot:wrench(x, y)
+        sleep(1000)
+        bot:sendPacket(2,
+            "action|dialog_return\ndialog_name|itemsucker_block\ntilex|" ..
+            x .. "|\ntiley|" .. y .. "|\nbuttonClicked|retrieveitem\n\nchk_enablesucking|1")
+        sleep(1000)
+        bot:sendPacket(2,
+            "action|dialog_return\ndialog_name|itemremovedfromsucker\ntilex|" ..
+            x .. "|\ntiley|" .. y .. "|\nitemtoremove|" .. itemCount - 2)
+        sleep(1000)
+        if inventory:getItemCount(blockID) < 1 then
+            bot:wrench(x, y)
+            sleep(1000)
+            bot:sendPacket(2,
+                "action|dialog_return\ndialog_name|itemsucker_block\ntilex|" ..
+                x .. "|\ntiley|" .. y .. "|\nbuttonClicked|retrieveitem\n\nchk_enablesucking|1")
+            sleep(1000)
+            bot:sendPacket(2,
+                "action|dialog_return\ndialog_name|itemremovedfromsucker\ntilex|" ..
+                x .. "|\ntiley|" .. y .. "|\nitemtoremove|200")
+            sleep(1000)
+        end
+    else
+        bot:wrench(x, y)
+        sleep(1000)
+        bot:sendPacket(2,
+            "action|dialog_return\ndialog_name|itemsucker_seed\ntilex|" ..
+            x .. "|\ntiley|" .. y .. "|\nbuttonClicked|retrieveitem\n\nchk_enablesucking|1")
+        sleep(1000)
+        bot:sendPacket(2,
+            "action|dialog_return\ndialog_name|itemremovedfromsucker\ntilex|" ..
+            x .. "|\ntiley|" .. y .. "|\nitemtoremove|" .. itemCount - 2)
+        sleep(1000)
+        if inventory:getItemCount(seedID) < 1 then
+            bot:wrench(x, y)
+            sleep(1000)
+            bot:sendPacket(2,
+                "action|dialog_return\ndialog_name|itemsucker_seed\ntilex|" ..
+                x .. "|\ntiley|" .. y .. "|\nbuttonClicked|retrieveitem\n\nchk_enablesucking|1")
+            sleep(1000)
+            bot:sendPacket(2,
+                "action|dialog_return\ndialog_name|itemremovedfromsucker\ntilex|" ..
+                x .. "|\ntiley|" .. y .. "|\nitemtoremove|200")
+            sleep(1000)
+        end
+    end
+end
+
+function scanGaia()
+    for _, tile in pairs(getTiles()) do
+        if tile.fg == 6946 then
+            gaiaX, gaiaY = tile.x, tile.y
+        end
+    end
+end
+
+function retGaia(list)
+    recon(list, PNBDoorID)
+    scanGaia()
+    sleep(300)
+    if not bot:isInTile(gaiaX, gaiaY - 1) then
+        bot:findPath(gaiaX, gaiaY - 1)
+    end
+    if bot:isInTile(gaiaX, gaiaY - 1) then
+        recon(list, PNBDoorID)
+        sleep(1000)
+        retJing(gaiaX, gaiaY)
+        sleep(1000)
+    end
+end
+
+function scanUt()
+    for _, tile in pairs(getTiles()) do
+        if tile.fg == 6948 then
+            utX, utY = tile.x, tile.y
+        end
+    end
+end
+
+function retUt(list)
+    recon(list, PNBDoorID)
+    scanUt()
+    sleep(300)
+    if not bot:isInTile(utX, utY - 1) then
+        bot:findPath(utX, utY - 1)
+    end
+    if bot:isInTile(utX, utY - 1) then
+        recon(list, PNBDoorID)
+        sleep(1000)
+        retJing(utX, utY)
+        sleep(1000)
+    end
+end
+
+function dropSeed()
+    bot.auto_collect = false
+    join(seedWorld, seedDoorID)
+    if bot:isInWorld(seedWorld) then
+        recon(seedWorld, seedDoorID)
+        if inventory:getItemCount(seedID) > 0 then
+            bot:drop(seedID, inventory:getItemCount(seedID))
+            sleep(500)
+            while inventory:getItemCount(seedID) > 0 do
+                recon(seedWorld, seedDoorID)
+                bot:moveRight()
+                sleep(200)
+                bot:drop(seedID, inventory:getItemCount(seedID))
+                sleep(500)
+            end
+        end
+        if useWebhook == true then
+            callWebhook("Dropping Seed", nil, gscanFloat(seedID), nil)
+        end
+    end
+end
+
+function dropBlocks()
+    bot.auto_collect = false
+    join(seedWorld, seedDoorID)
+    if bot:isInWorld(seedWorld) then
+        recon(seedWorld, seedDoorID)
+        if inventory:getItemCount(blockID) > 0 then
+            bot:drop(blockID, inventory:getItemCount(blockID))
+            sleep(1000)
+            while inventory:getItemCount(blockID) > 0 do
+                recon(seedWorld, seedDoorID)
+                bot:moveRight()
+                sleep(200)
+                bot:drop(blockID, inventory:getItemCount(blockID))
+                sleep(1000)
+            end
+        end
+    end
+end
+
+function buyPack()
+    bot.auto_collect = false
+    join(packWorld, packDoorID)
+    if bot:isInWorld(packWorld) then
+        while bot.gem_count > packPrice do
+            recon(packWorld, packDoorID)
+            bot:buy(packName)
+            sleep(2000)
+            for _, itm in pairs(packItemID) do
+                if inventory:getItemCount(itm) > 190 then
+                    dropPack()
+                end
+            end
+        end
+        dropPack()
+    end
+end
+
+function dropPack()
+    bot.auto_collect = false
+    join(packWorld, packDoorID)
+    for _, pack in pairs(packItemID) do
+        recon(packWorld, packDoorID)
+        if inventory:getItemCount(pack) > 0 then
+            bot:drop(pack, inventory:getItemCount(pack))
+            sleep(1000)
+            while inventory:getItemCount(pack) > 0 do
+                bot.auto_collect = false
+                recon(packWorld, packDoorID)
+                bot:moveRight()
+                sleep(200)
+                bot:drop(pack, inventory:getItemCount(pack))
+                sleep(1000)
+            end
+        end
+        if useWebhook == true then
+            callWebhook("Dropping Pack", nil, nil, 1)
+        end
+    end
+end
+
+function takePick()
+    bot.auto_collect = false
+    join(pickaxeWorld, pickaxeDoorID)
+    if useWebhook == true then
+        callWebhook("Taking Pickaxe", nil, nil, nil)
+    end
+    if bot:isInWorld(pickaxeWorld) then
+        recon(pickaxeWorld, pickaxeDoorID)
+        for _, obj in pairs(getObjects()) do
+            if obj.id == 98 then
+                objx, objy = obj.x // 32, obj.y // 32
+                recon(pickaxeWorld, pickaxeDoorID)
+                bot:findPath(objx, objy)
+                if bot:isInTile(objx, objy) then
+                    sleep(300)
+                    bot:collect(5, 100)
+                    sleep(500)
+                end
+                if inventory:getItemCount(98) > 1 then
+                    recon(pickaxeWorld, pickaxeDoorID)
+                    bot:moveRight()
+                    sleep(100)
+                    bot:setDirection(true)
+                    sleep(100)
+                    bot:drop(98, inventory:getItemCount(98) - 1)
+                    sleep(500)
+                else
+                    break
+                end
+            end
+        end
+        if inventory:getItemCount(98) > 0 then
+            if not inventory:getItem(98).isActive then
+                bot:wear(98)
+                sleep(1000)
+            end
+        else
+            sleep(3000)
+            takePick()
+        end
+    end
+end
+
+function gscanFloat(id)
+    return world.growscan:getObjects()[id] or 0
+end
+
+function restt()
+    local currentTime = os.time()
+    local restOn = lastRestTime + restInterval
+
+    if currentTime >= restOn then
+        if useWebhook == true then
+            callWebhook("Resting For " .. restTime .. " Seconds", nil, nil, nil)
+        end
+        bot:say("Resting...")
+        sleep(restTime * 1000)
+        lastRestTime = os.time()
+        if useWebhook == true then
+            callWebhook("Resuming after rest.", nil, nil, nil)
+        end
+        bot:say("Resuming after rest.")
+    end
+end
+
+function dcBot()
+    if bot.level >= autoRemoveOnLevel then
+        if useWebhook == true then
+            callWebhook("Level Max, Removing Bot", nil, nil, nil)
+        end
+        dropSeed()
+        dropBlocks()
+        bot.auto_reconnect = false
+        removeBot(bot.name)
+    end
+end
+
+function main(list)
+    local gemsWorld = 0
+    if maxGems == true then
+        while gemsWorld < maxGemsInWorld do
+            if inventory:getItemCount(blockID) < 150 then
+                takeBlockMain()
+            end
+            if useGaut == true then
+                bot.auto_collect = false
+            else
+                bot.auto_collect = true
+            end
+            recon(list, PNBDoorID)
+            if bot:isInWorld(list) then
+                pnbMain(list)
+                sleep(500)
+                if inventory:getItemCount(blockID) == 0 then
+                    if useGaut == true then
+                        retGaia(list)
+                        retUt(list)
+                    end
+                    dropSeed()
+                end
+            end
+            gemsWorld = gscanFloat(112)
+            print(gemsWorld)
+            if autoBuyPack == true then
+                gemBot = bot.gem_count
+                if gemBot > gemsBeforeBuyPack then
+                    buyPack()
+                end
+            end
+            if autoRemove == true then
+                dcBot()
+            end
+        end
+    else
+        while true do
+            if inventory:getItemCount(blockID) < 150 then
+                takeBlockMain()
+            end
+            if useGaut == true then
+                bot.auto_collect = false
+            else
+                bot.auto_collect = true
+            end
+            recon(list, PNBDoorID)
+            if bot:isInWorld(list) then
+                pnbMain(list)
+                sleep(500)
+                if inventory:getItemCount(blockID) == 0 then
+                    if useGaut == true then
+                        retGaia(list)
+                        retUt(list)
+                    end
+                    dropSeed()
+                end
+            end
+            print(gemsWorld)
+            if autoBuyPack == true then
+                gemBot = bot.gem_count
+                if gemBot > gemsBeforeBuyPack then
+                    buyPack()
+                end
+            end
+            if autoRemove == true then
+                dcBot()
+            end
+        end
+    end
+end
+
+if DScript == "https://discord.com/invite/MAAX8guNWF" then
+    bot:say("Starting...")
+    sleep(400)
+    for _, list in pairs(PNBWorld) do
+        list = string.upper(list)
+        if takePickaxe == true then
+            if inventory:getItemCount(98) == 0 then
+                takePick()
+            end
+        end
+        recon(list, PNBDoorID)
+        if not nuked then
+            goMarker(list)
+            bot:say("PNB Script by RIZKOGTI")
+            main(list)
+            sleep(1000)
+        end
+    end
+else
+    bot:say("RIZKOGTI")
+end
